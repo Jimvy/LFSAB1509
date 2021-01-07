@@ -3,6 +3,7 @@ package be.ucl.lfsab1509.gravityrun;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.view.WindowManager;
 import android.widget.Toast;
@@ -15,38 +16,44 @@ import be.ucl.lfsab1509.gravityrun.tools.BluetoothFragment;
 import be.ucl.lfsab1509.gravityrun.tools.sensors.AndroidSensorHelper;
 import com.badlogic.gdx.backends.android.AndroidApplication;
 import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration;
-import com.crashlytics.android.Crashlytics;
-import io.fabric.sdk.android.Fabric;
+//import com.crashlytics.android.Crashlytics;
+//import io.fabric.sdk.android.Fabric;
 
 public class AndroidLauncher extends AndroidApplication {
 
     public AbstractMultiPlayScreen multiPlayScreen;
     private Gpgs gpgs;
 
-    private Handler handler = new Handler() {
+    private static class MyHandler extends Handler {
+        AndroidLauncher launcher;
+        MyHandler(AndroidLauncher launcher) {
+            super(Looper.myLooper());
+            this.launcher = launcher;
+        }
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
                 case BluetoothConstants.MESSAGE_DEVICE_NAME:
                     CharSequence connectedDevice = "Connected to " + msg.getData().getString(BluetoothConstants.DEVICE_NAME);
-                    Toast.makeText(AndroidLauncher.this, connectedDevice, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(launcher, connectedDevice, Toast.LENGTH_SHORT).show();
                     break;
                 case BluetoothConstants.MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
                     String readMessage = new String(readBuf, 0, msg.arg1);
-                    multiPlayScreen.incomingMessage(readMessage);
+                    launcher.multiPlayScreen.incomingMessage(readMessage);
                     break;
                 case BluetoothConstants.MESSAGE_STATE_CHANGE:
                     if (AndroidBluetoothManager.getState() == BluetoothConstants.STATE_NONE)
-                        multiPlayScreen.onDisconnect();
+                        launcher.multiPlayScreen.onDisconnect();
                     break;
                 case BluetoothConstants.MESSAGE_TOAST:
                     CharSequence content = msg.getData().getString(BluetoothConstants.TOAST);
-                    Toast.makeText(AndroidLauncher.this, content, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(launcher, content, Toast.LENGTH_SHORT).show();
                     break;
             }
         }
-    };
+    }
+    private final Handler handler = new MyHandler(this);
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -64,7 +71,7 @@ public class AndroidLauncher extends AndroidApplication {
 
         BluetoothFragment bluetoothFragment = new BluetoothFragment(this, handler);
 
-        Fabric.with(this, new Crashlytics());
+        //Fabric.with(this, new Crashlytics());
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 

@@ -4,11 +4,11 @@ def keystoreReleaseProperties = new Properties()
 keystoreReleaseProperties.load(new FileInputStream(rootProject.file("keystore-release.properties")))
 
 android {
-    buildToolsVersion "27.0.3"
-    compileSdkVersion 27
+    buildToolsVersion "30.0.2"
+    compileSdkVersion 30
 
     sourceSets {
-        instrumentTest.setRoot('tests')
+        androidTest.setRoot('tests')
 
         main {
             aidl.srcDirs = ['src']
@@ -49,7 +49,7 @@ android {
     defaultConfig {
         applicationId "be.ucl.lfsab1509.gravityrun"
         minSdkVersion 15 // Jelly Bean 4.1.2 API 16, Kitkat API 19, Lollipop API 20
-        targetSdkVersion 27
+        targetSdkVersion 30
         versionCode 3
         versionName "3.0"
     }
@@ -95,29 +95,37 @@ idea {
 }
 
 task copyAndroidNatives() {
-    file("libs/armeabi/").mkdirs()
-    file("libs/armeabi-v7a/").mkdirs()
-    file("libs/arm64-v8a/").mkdirs()
-    file("libs/x86/").mkdirs()
-    file("libs/x86_64/").mkdirs()
+    doFirst {
+		file("libs/armeabi/").mkdirs()
+		file("libs/armeabi-v7a/").mkdirs()
+		file("libs/arm64-v8a/").mkdirs()
+		file("libs/x86/").mkdirs()
+		file("libs/x86_64/").mkdirs()
 
-    configurations.natives.files.each { jar ->
-        def outputDir = null
+		configurations.natives.files.each { jar ->
+			def outputDir = null
 
-        if (jar.name.endsWith("natives-armeabi.jar")) outputDir = file("libs/armeabi")
-        if (jar.name.endsWith("natives-armeabi-v7a.jar")) outputDir = file("libs/armeabi-v7a")
-        if (jar.name.endsWith("natives-arm64-v8a.jar")) outputDir = file("libs/arm64-v8a")
-        if (jar.name.endsWith("natives-x86.jar")) outputDir = file("libs/x86")
-        if (jar.name.endsWith("natives-x86_64.jar")) outputDir = file("libs/x86_64")
+			if (jar.name.endsWith("natives-armeabi.jar")) outputDir = file("libs/armeabi")
+			if (jar.name.endsWith("natives-armeabi-v7a.jar")) outputDir = file("libs/armeabi-v7a")
+			if (jar.name.endsWith("natives-arm64-v8a.jar")) outputDir = file("libs/arm64-v8a")
+			if (jar.name.endsWith("natives-x86.jar")) outputDir = file("libs/x86")
+			if (jar.name.endsWith("natives-x86_64.jar")) outputDir = file("libs/x86_64")
 
-        if (outputDir != null) {
-            copy {
-                from zipTree(jar)
-                into outputDir
-                include "*.so"
-            }
-        }
+			if (outputDir != null) {
+				copy {
+					from zipTree(jar)
+					into outputDir
+					include "*.so"
+				}
+			}
+		}
     }
+}
+
+tasks.whenTaskAdded { packageTask ->
+	if (packageTask.name.contains("package")) {
+		packageTask.dependsOn 'copyAndroidNatives'
+	}
 }
 
 task run(type: Exec) {
